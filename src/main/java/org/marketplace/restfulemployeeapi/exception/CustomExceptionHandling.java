@@ -5,13 +5,27 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @RestControllerAdvice
 public class CustomExceptionHandling {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ErrorResponse<?> handleServiceException(ResponseStatusException e) {
+
+        return ErrorResponse.builder()
+                .status(Boolean.FALSE)
+                .code(e.getStatusCode().value())
+                .message(e.getReason() != null ? e.getReason(): "Request fail")
+                .errors(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

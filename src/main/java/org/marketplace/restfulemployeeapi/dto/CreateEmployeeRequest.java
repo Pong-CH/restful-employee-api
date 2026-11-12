@@ -11,6 +11,7 @@ public record CreateEmployeeRequest(
         @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
         String name,
 
+        @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         String email,
 
@@ -19,7 +20,8 @@ public record CreateEmployeeRequest(
         BigDecimal salary,
 
 
-        @NotBlank(message = "Hired date is required\n Format: yyy-MM-dd")
-        String  hireDate
+        @NotNull(message = "Hire date is required")
+        @PastOrPresent(message = "Hire date can't be in the future")
+        LocalDate  hireDate
 ) {
 }

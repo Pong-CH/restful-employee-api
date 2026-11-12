@@ -30,6 +30,7 @@ public class EmployeeController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public EmployeeResponse createEmployee(
           @Valid @RequestBody CreateEmployeeRequest createRequest
             ) {
@@ -43,7 +44,7 @@ public class EmployeeController {
         return service.searchEmployees(name);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public EmployeeResponse updateEmployeeById(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateEmployeeRequest request

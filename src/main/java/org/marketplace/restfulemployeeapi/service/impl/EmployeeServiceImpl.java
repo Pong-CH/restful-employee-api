@@ -22,11 +22,13 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeRepository repository;
     private final EmployeeMapper mapper;
 
-    private static int nextId = 3;
 
     @Override
     public List<EmployeeResponse> getAll() {
-        return repository.getEmployees()
+
+        List<Employee> employees = repository.findAll();
+
+        return employees
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -34,99 +36,84 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeResponse getEmployeeById(Integer id) {
-        return repository.getEmployees()
-                .stream()
-                .filter(emp -> emp.getId().equals(id))
-                .findFirst()
-                .map(mapper::toResponse)
+
+        Employee foundEmployee = repository.findById(id)
                 .orElseThrow(
                         () -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
-                                "Employee whit id: %d not found".formatted(id)
+                                "Employee has not found"
                         )
                 );
+
+        return mapper.toResponse(foundEmployee);
     }
 
     @Override
     public EmployeeResponse createEmployee(CreateEmployeeRequest employeeRequest) {
 
-        if (checkIfEmailExist(employeeRequest.email())){
-            throw  new ResponseStatusException(
+        if(repository.existsByEmail(employeeRequest.email())){
+            throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Email already exists"
+                    "Email is already exist"
             );
         }
 
         Employee employee = mapper.fromCreateEmployeeRequest(employeeRequest);
-        employee.setId(nextId++);
         employee.setIsActive(Boolean.TRUE);
 
-
-        repository.getEmployees().add(employee);
-        return mapper.toResponse(employee);
-    }
-
-    @Override
-    public EmployeeResponse updateEmployeeById(Integer id, UpdateEmployeeRequest updateEmployeeRequest) {
-        Employee employee = repository.getEmployees()
-                .stream()
-                .filter(emp -> emp.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Employee id not found %d".formatted(id)
-                ));
-
-        boolean emailExist = repository.getEmployees()
-                .stream()
-                .anyMatch(emp ->
-                        !emp.getId().equals(id)
-                                && emp.getEmail().equalsIgnoreCase(
-                                        updateEmployeeRequest.email())
-                        );
-        if (emailExist) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Email already exists"
-            );
-        }
-        employee.setName(updateEmployeeRequest.name());
-        employee.setEmail(updateEmployeeRequest.email());
-        employee.setSalary(updateEmployeeRequest.salary());
-        employee.setHireDate(updateEmployeeRequest.hireDate());
-        employee.setIsActive(updateEmployeeRequest.isActive());
+        repository.save(employee);
 
         return mapper.toResponse(employee);
-    }
-
-    @Override
-    public void deleteEmployeeById(Integer id) {
-        boolean remove = repository.getEmployees()
-                .removeIf(emp -> emp.getId().equals(id));
-
-        if (!remove) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Employee with id: %d not found".formatted(id)
-            );
-        }
     }
 
     @Override
     public List<EmployeeResponse> searchEmployees(String name) {
-        return repository.getEmployees()
+
+        List<Employee> employees = repository
+                .findAllByNameContainingIgnoreCase(name);
+
+        return employees
                 .stream()
-                .filter(emp -> emp.getName()
-                        .toLowerCase(Locale.ROOT)
-                        .contains(name.trim().toLowerCase(Locale.ROOT)))
                 .map(mapper::toResponse)
                 .toList();
     }
 
-    private boolean checkIfEmailExist(String email) {
-        return repository.getEmployees()
-                .stream()
-                .anyMatch(emp -> emp.getEmail().equals(email));
+    @Override
+    public EmployeeResponse updateEmployeeById(Integer id, UpdateEmployeeRequest updateEmployeeRequest) {
+
+        Employee employee = repository.findById(id)
+                .orElseThrow(
+                        () -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Employee has been found"
+                        )
+                );
+
+        if(repository.existsByEmail(updateEmployeeRequest.email())){
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email is already exist"
+            );
+        }
+
+
+        mapper.updateEntity(employee, updateEmployeeRequest);
+
+        Employee updateEmployee = repository.save(employee);
+
+        return mapper.toResponse(updateEmployee);
     }
 
+    @Override
+    public void deleteEmployeeById(Integer id) {
+
+        if (!repository.existsById(id)){
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Employee not been found"
+            );
+        }
+
+        repository.deleteById(id);
+    }
 }
